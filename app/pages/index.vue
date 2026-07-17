@@ -22,6 +22,25 @@
         placeholder="试试问：根据XXX写一个提示词"
         :rows="4"
       />
+
+      <details style="margin: 12px 0;">
+        <summary style="cursor:pointer;color:var(--color-text-secondary);font-size:14px;">⚙️ 参数设置</summary>
+        <div style="margin-top:12px;display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <label>temperature ({{ temperature }})</label>
+            <input type="range" min="0" max="1" step="0.1" v-model.number="temperature" style="width:100%;" />
+          </div>
+          <div>
+            <label>最大 Token</label>
+            <input type="number" v-model.number="maxTokens" style="width:100%;padding:6px;border:1px solid var(--color-border);border-radius:4px;box-sizing:border-box;" />
+          </div>
+          <div>
+            <label>角色设定词</label>
+            <AppTextarea v-model="systemPrompt" :rows="3" placeholder="可选：自定义 AI 角色设定" />
+          </div>
+        </div>
+      </details>
+
       <div class="input-actions">
         <AppButton variant="primary" :loading="loading" @click="send">
           {{ loading ? 'AI 思考中...' : '🚀 生成' }}
