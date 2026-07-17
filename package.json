@@ -1,0 +1,16 @@
+{
+    "name": "prompt-tool",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "nuxi dev",
+        "build": "nuxi build"
+    },
+    "devDependencies": {
+        "@types/node": "^26.1.1",
+        "nuxt": "^4.0.0"
+    },
+    "dependencies": {
+        "vue-sonner": "^2.0.9"
+    }
+}
