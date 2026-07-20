@@ -76,6 +76,11 @@
         <summary>查看完整回复</summary>
         <pre>{{ result }}</pre>
       </details>
+      <div class="io-actions">
+        <AppButton @click="exportLibrary">📤 导出词库</AppButton>
+        <AppButton @click="fileInput.click()">📥 导入词库</AppButton>
+        <input ref="fileInput" type="file" accept=".json" hidden @change="importLibrary" />
+      </div>
     </AppCard>
 
     <!-- 错误提示 -->
@@ -100,6 +105,7 @@ const categories = [
   { key: 'general', label: '通用', icon: '📋' },
 ]
 
+const fileInput = ref(null)
 const message = ref('')
 const loading = ref(false)
 const result = ref('')
@@ -234,6 +240,37 @@ function savePrompt() {
   prompts.value.push(newPrompt)
   toast.success('已保存到提示词库')
 }
+
+function exportLibrary() {
+  const json = JSON.stringify(prompts.value, null, 2)
+  const blob = new Blob([json], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `prompt-library-${new Date().toISOString().slice(0, 10)}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+  toast.success('词库已导出')
+}
+
+function importLibrary(e) {
+  const file = e.target.files[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = (event) => {
+    try {
+      const data = JSON.parse(event.target.result)
+      if (!Array.isArray(data)) throw new Error('格式错误')
+      prompts.value = data
+      toast.success(`已导入 ${data.length} 条提示词`)
+    } catch {
+      toast.error('文件格式不正确，请选择有效的 JSON 文件')
+    }
+  }
+  reader.readAsText(file)
+  // 清空 input，允许重复选同一个文件
+  e.target.value = ''
+}
 </script>
 
 <style scoped>
@@ -320,6 +357,13 @@ function savePrompt() {
   white-space: pre-wrap;
   font-size: var(--font-size-sm);
   margin-top: var(--space-sm);
+}
+
+.io-actions {
+  margin-top: var(--space-lg);
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
 }
 
 /* 词库详情 */
