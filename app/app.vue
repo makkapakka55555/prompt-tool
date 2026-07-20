@@ -33,6 +33,7 @@
         >
           <span class="sidebar-item-label">{{ msg.role === 'user' ? '你' : 'AI' }}</span>
           <span class="sidebar-item-text">{{ msg.content.slice(0, 20) }}{{ msg.content.length > 20 ? '...' : '' }}</span>
+          <span v-if="msg.role === 'user'" class="sidebar-item-del" @click.stop="deleteHistoryItem(msg)">×</span>
         </div>
         <button class="sidebar-more-btn" @click="showAllHistory = !showAllHistory" v-if="history.length>10">
           {{ showAllHistory ? '收起' : '显示所有' }}
@@ -65,7 +66,15 @@ const displayHistory = computed(()=>{
   }else{
     return history.value.slice(-10)
   }
-  })
+})
+
+function deleteHistoryItem(msg) {
+  const idx = history.value.indexOf(msg)
+  if (idx === -1) return
+  // 删除一整对（user + assistant）
+  const pairStart = msg.role === 'assistant' ? idx - 1 : idx
+  history.value.splice(pairStart, 2)
+}
 
 function restoreMessage(msg, index) {
   let userContent = ''
@@ -195,6 +204,23 @@ body {
   font-size: 11px;
   color: var(--color-text-tertiary);
   flex-shrink: 0;
+}
+
+.sidebar-item-del {
+  display: none;
+  font-size: 14px;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.sidebar-item:hover .sidebar-item-del {
+  display: inline;
+}
+
+.sidebar-item-del:hover {
+  color: var(--color-error, #e74c3c);
 }
 
 /* ─── 主内容 ─── */

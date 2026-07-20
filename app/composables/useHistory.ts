@@ -11,5 +11,9 @@ export function useHistory() {
     )
   }
 
-  return { history, addHistory }
+  function removeHistory(index) {
+    history.value.splice(index, 1)
+  }
+
+  return { history, addHistory, removeHistory }
 }

@@ -65,14 +65,14 @@
     </AppCard>
 
     <!-- 结果区 -->
-    <AppCard class="result-section" v-if="result">
+    <AppCard class="result-section" >
       <h3 class="result-title">✅ 生成的提示词</h3>
       <AppTextarea v-model="editPrompt" :rows="8" />
       <div class="result-actions">
         <AppButton @click="copyToClipboard">📋 复制</AppButton>
         <AppButton variant="primary" @click="savePrompt">💾 保存</AppButton>
       </div>
-      <details v-if="result" class="raw-reply">
+      <details open class="raw-reply">
         <summary>查看完整回复</summary>
         <pre>{{ result }}</pre>
       </details>
@@ -132,11 +132,11 @@ function formatDate(ts) {
   return new Date(ts).toLocaleDateString('zh-CN')
 }
 
-function pickFromLibrary(item) {
-  result.value = item.rawresult
-  editPrompt.value = item.content
-  toast.success('已从提示词库填入')
-}
+// function pickFromLibrary(item) {
+//   result.value = item.rawresult
+//   editPrompt.value = item.content
+//   toast.success('已从提示词库填入')
+// }
 
 function copyDetail() {
   navigator.clipboard.writeText(detailItem.value.content)
@@ -165,22 +165,49 @@ async function send() {
   result.value = ''
 
   try {
-    const data = await $fetch('/api/chat', {
+    const response = await fetch('/api/chat', {
       method: 'POST',
-      body: {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         message: message.value,
         history: history.value,
         systemPrompt: systemPrompt.value,
         maxTokens: maxTokens.value,
         temperature: temperature.value,
         category: category.value,
-      },
+      }),
       signal: abortController.value.signal,
-      retry: 1,
     })
-    result.value = data.reply
-    editPrompt.value = data.extracted
-    addHistory(message.value, result.value)
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      const text = decoder.decode(value, { stream: true })
+      buffer += text
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const payload = line.slice(6).trim()
+          if (!payload) continue
+          const json = JSON.parse(payload)
+          if (json.type === 'token') {
+            result.value += json.content
+          } else if (json.type === 'done') {
+            editPrompt.value = json.extracted
+            addHistory(message.value, result.value)
+          } else if (json.type === 'error') {
+            error.value = json.message
+          }
+        }
+      }
+    }
   } catch (err) {
     if (err.name === 'AbortError') return
     error.value = err?.message || '请求失败'
@@ -270,9 +297,14 @@ function savePrompt() {
 
 .input-actions {
   margin-top: var(--space-lg);
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
 }
 
 .result-section {
+  display: flex;
+  flex-direction: row;
   margin-bottom: var(--space-lg);
 }
 

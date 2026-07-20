@@ -1,3 +1,4 @@
+import { setHeader } from 'h3'
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   const body = await readBody(event)
@@ -19,6 +20,11 @@ export default defineEventHandler(async (event) => {
     { role: 'user', content: message }
   ]
 
+//设置SSE响应头
+  setHeader(event, 'Content-Type', 'text/event-stream')
+  setHeader(event, 'Cache-Control', 'no-cache')
+  setHeader(event, 'Connection', 'keep-alive')
+
   const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -29,15 +35,52 @@ export default defineEventHandler(async (event) => {
       model: 'deepseek-v4-flash',
       messages,
       temperature: temperature || 0.5,
-      max_tokens: maxTokens || 1024
+      max_tokens: maxTokens || 1024,
+      stream: true
     })
   })
 
-  const data = await response.json()
-  const reply = data.choices?.[0]?.message?.content || '没有收到回复'
+  // const data = await response.json()
+  // const reply = data.choices?.[0]?.message?.content || '没有收到回复'
+   //  如果 API 返回错误，直接返回错误信息
+  if (!response.ok) {
+    const errText = await response.text()
+    event.node.res.write(`data: ${JSON.stringify({ type: 'error', message: errText })}\n\n`)
+    event.node.res.end()
+    return
+  }
 
-  const match = reply.match(/---PROMPT_START---\n?([\s\S]*)\n?---PROMPT_END---/)
-  const extracted = match ? match[1].trim() : reply
-
-  return { reply, extracted }
+  // const match = reply.match(/---PROMPT_START---\n?([\s\S]*)\n?---PROMPT_END---/)
+  // const extracted = match ? match[1].trim() : reply
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  //积累完整回复
+  let fullReply = ''
+  // return { reply, extracted }
+  while(true){
+    const {done,value} = await reader.read()
+    if(done) break
+    const chunk = decoder.decode(value,{stream:true})
+    const lines = chunk.split('\n')
+    for(const line of lines){
+      if(line.startsWith('data:')){
+        const data = line.slice(6).trim()
+        if(data === '[DONE]') continue
+        try {
+              const json = JSON.parse(data)
+              const content = json.choices?.[0]?.delta?.content || ''
+              if (content) {
+                fullReply += content
+                // 向前端推一个字
+                event.node.res.write(`data: ${JSON.stringify({ type: 'token', content })}\n\n`)
+              }
+            }catch(e){}
+      }
+    }
+  }
+  const match = fullReply.match(/---PROMPT_START---\n?([\s\S]*?)\n?---PROMPT_END---/)
+    const extracted = match ? match[1].trim() : fullReply
+    event.node.res.write(`data: ${JSON.stringify({ type: 'done', extracted })}\n\n`)
+    event.node.res.end()
 })
+

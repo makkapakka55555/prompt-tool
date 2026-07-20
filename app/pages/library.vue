@@ -10,7 +10,7 @@
     </div>
 
     <!-- 提示词列表 -->
-    <AppCard v-for="item in filteredPrompts" :key="item.id" class="prompt-card" @click="openEdit(item)">
+    <AppCard v-for="item in filteredPrompts" :key="item.id" class="prompt-card"">
       <div class="card-header">
         <span class="tag">{{ item.category }}</span>
         <span class="card-date">{{ formatDate(item.createdAt) }}</span>
@@ -20,6 +20,7 @@
       <div class="card-actions">
         <AppButton @click="copyItem(item)">📋 复制</AppButton>
         <AppButton variant="danger" @click="deleteItem(item.id)">🗑 删除</AppButton>
+        <AppButton variant="primary" @click="openEdit(item)">✏️ 编辑详情</AppButton>
       </div>
     </AppCard>
 
