@@ -111,7 +111,6 @@ const category = ref('copywriting')
 const editPrompt = ref('')
 const editSource = ref('')
 const prompts = getStorageData('prompt-library', [])
-const library = prompts
 const { history, addHistory } = useHistory()
 const detailItem = ref(null)
 
@@ -131,12 +130,6 @@ onMounted(() => {
 function formatDate(ts) {
   return new Date(ts).toLocaleDateString('zh-CN')
 }
-
-// function pickFromLibrary(item) {
-//   result.value = item.rawresult
-//   editPrompt.value = item.content
-//   toast.success('已从提示词库填入')
-// }
 
 function copyDetail() {
   navigator.clipboard.writeText(detailItem.value.content)
@@ -303,8 +296,6 @@ function savePrompt() {
 }
 
 .result-section {
-  display: flex;
-  flex-direction: column;
   margin-bottom: var(--space-lg);
 }
 
