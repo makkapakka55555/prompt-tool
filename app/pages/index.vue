@@ -87,9 +87,10 @@
 </template>
 
 <script setup >
-import { ref, onMounted } from 'vue'
+import { ref, watch } from 'vue'
 import { getStorageData } from '@/composables/useStorage'
 import { useHistory } from '@/composables/useHistory'
+import { useRestoreData } from '@/composables/useRestoreData'
 import { toast } from 'vue-sonner'
 
 const categories = [
@@ -112,20 +113,18 @@ const editPrompt = ref('')
 const editSource = ref('')
 const prompts = getStorageData('prompt-library', [])
 const { history, addHistory } = useHistory()
+const { pendingRestore, consumeRestoreData } = useRestoreData()
 const detailItem = ref(null)
 
-// 从侧边栏历史记录恢复
-onMounted(() => {
-  const raw = localStorage.getItem('restore-data')
-  if (raw) {
-    const data = JSON.parse(raw)
-    message.value = data.user
-    result.value = data.assistant
-    editPrompt.value = data.assistant
-    editSource.value = 'ai'
-    localStorage.removeItem('restore-data')
-  }
-})
+// 从侧边栏历史记录恢复（实时响应，不用等 onMounted）
+watch(pendingRestore, (data) => {
+  if (!data) return
+  message.value = data.user
+  result.value = data.assistant
+  editPrompt.value = data.assistant
+  editSource.value = 'ai'
+  consumeRestoreData()
+}, { immediate: true })
 
 function formatDate(ts) {
   return new Date(ts).toLocaleDateString('zh-CN')

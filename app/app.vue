@@ -29,7 +29,7 @@
           v-for="(msg, i) in displayHistory"
           :key="i"
           class="sidebar-item"
-          @click="restoreMessage(msg, i)"
+          @click="restoreMessage(msg)"
         >
           <span class="sidebar-item-label">{{ msg.role === 'user' ? '你' : 'AI' }}</span>
           <span class="sidebar-item-text">{{ msg.content.slice(0, 20) }}{{ msg.content.length > 20 ? '...' : '' }}</span>
@@ -61,8 +61,10 @@
 import { Toaster } from 'vue-sonner'
 import { ref, computed, onMounted } from 'vue'
 import { useHistory } from '@/composables/useHistory'
+import { useRestoreData } from '@/composables/useRestoreData'
 
 const { history } = useHistory()
+const { setRestoreData } = useRestoreData()
 const darkMode = ref(false)
 
 onMounted(() => {
@@ -98,21 +100,24 @@ function deleteHistoryItem(msg) {
   history.value.splice(pairStart, 2)
 }
 
-function restoreMessage(msg, index) {
+function restoreMessage(msg) {
+  const idx = history.value.indexOf(msg)
+  if (idx === -1) return
+
   let userContent = ''
   let assistantContent = ''
 
   if (msg.role === 'user') {
     userContent = msg.content
-    const next = history.value[index + 1]
+    const next = history.value[idx + 1]
     assistantContent = next?.content || ''
   } else if (msg.role === 'assistant') {
     assistantContent = msg.content
-    const prev = history.value[index - 1]
+    const prev = history.value[idx - 1]
     userContent = prev?.content || ''
   }
 
-  localStorage.setItem('restore-data', JSON.stringify({ user: userContent, assistant: assistantContent }))
+  setRestoreData({ user: userContent, assistant: assistantContent })
   router.push('/')
 }
 </script>
