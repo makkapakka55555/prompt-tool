@@ -304,7 +304,7 @@ function savePrompt() {
 
 .result-section {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   margin-bottom: var(--space-lg);
 }
 

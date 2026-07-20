@@ -39,6 +39,13 @@
           {{ showAllHistory ? '收起' : '显示所有' }}
         </button>
       </div>
+      <!-- 暗黑模式切换 -->
+      <div class="sidebar-section sidebar-bottom">
+        <div class="sidebar-item" @click="toggleDark">
+          <span>{{ darkMode ? '☀️' : '🌙' }}</span>
+          <span class="sidebar-item-text">{{ darkMode ? '亮色模式' : '暗黑模式' }}</span>
+        </div>
+      </div>
     </aside>
 
     <!-- 右侧主内容 -->
@@ -52,10 +59,25 @@
 
 <script setup>
 import { Toaster } from 'vue-sonner'
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useHistory } from '@/composables/useHistory'
 
 const { history } = useHistory()
+const darkMode = ref(false)
+
+onMounted(() => {
+  const saved = localStorage.getItem('dark-mode')
+  if (saved === 'true' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    darkMode.value = true
+    document.documentElement.classList.add('dark')
+  }
+})
+
+function toggleDark() {
+  darkMode.value = !darkMode.value
+  document.documentElement.classList.toggle('dark')
+  localStorage.setItem('dark-mode', darkMode.value)
+}
 
 const router = useRouter()
 //历史记录
@@ -221,6 +243,13 @@ body {
 
 .sidebar-item-del:hover {
   color: var(--color-error, #e74c3c);
+}
+
+/* ─── 暗黑模式切换 ─── */
+.sidebar-bottom {
+  margin-top: auto;
+  border-top: 1px solid var(--color-border-light);
+  padding-top: var(--space-md);
 }
 
 /* ─── 主内容 ─── */

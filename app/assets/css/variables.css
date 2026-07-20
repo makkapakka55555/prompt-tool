@@ -55,3 +55,27 @@
   /* ─── 布局 ─── */
   --content-max-width: 800px;
 }
+
+/* ─── 暗黑模式 ─── */
+.dark {
+  --color-primary: #4da6ff;
+  --color-primary-hover: #6db8ff;
+  --color-primary-active: #1890ff;
+  --color-primary-bg: #162240;
+
+  --color-error-bg: #3a1a1a;
+
+  --color-text: #e4e4ec;
+  --color-text-secondary: #9898b0;
+  --color-text-tertiary: #686880;
+  --color-text-inverse: #1a1a2e;
+
+  --color-bg: #141420;
+  --color-bg-white: #1e1e30;
+  --color-border: #2a2a42;
+  --color-border-light: #222238;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
