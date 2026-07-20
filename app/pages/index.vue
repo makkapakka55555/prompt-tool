@@ -45,6 +45,7 @@
         <AppButton variant="primary" :loading="loading" @click="send">
           {{ loading ? 'AI 思考中...' : '🚀 生成' }}
         </AppButton>
+        <AppButton v-if="loading" variant="danger" @click="cancelSend">✋ 取消</AppButton>
       </div>
     </AppCard>
 
@@ -105,6 +106,7 @@ const error = ref('')
 const systemPrompt = ref('')
 const maxTokens = ref(1024)
 const temperature = ref(0.5)
+ const abortController = ref(null)
 const category = ref('copywriting')
 const editPrompt = ref('')
 const editSource = ref('')
@@ -158,6 +160,7 @@ async function send() {
   if (!message.value.trim()) return
 
   loading.value = true
+  abortController.value = new AbortController()
   error.value = ''
   result.value = ''
 
@@ -170,17 +173,29 @@ async function send() {
         systemPrompt: systemPrompt.value,
         maxTokens: maxTokens.value,
         temperature: temperature.value,
-        category: category.value
-      }
+        category: category.value,
+      },
+      signal: abortController.value.signal,
+      retry: 1,
     })
     result.value = data.reply
     editPrompt.value = data.extracted
     addHistory(message.value, result.value)
   } catch (err) {
+    if (err.name === 'AbortError') return
     error.value = err?.message || '请求失败'
   } finally {
     loading.value = false
   }
+}
+
+function cancelSend() {
+  if (abortController.value) {
+    abortController.value.abort()
+    abortController.value = null
+  }
+  loading.value = false
+  error.value = ''
 }
 
 function copyToClipboard() {
