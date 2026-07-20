@@ -3,7 +3,7 @@ import { ref } from 'vue'
 const pendingRestore = ref(null)
 
 export function useRestoreData() {
-  function setRestoreData(data) {
+  function setRestoreData(data: any | null) {
     pendingRestore.value = data
   }
 
