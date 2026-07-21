@@ -6,6 +6,8 @@
 </template>
 
 <script setup>
+import LcButton from './lc/LcButton.vue'
+import LcInput from './lc/LcInput.vue'
 defineOptions({ name: 'DynamicRenderer' })
 const props = defineProps({
   node: { type: Object, required: true }
@@ -14,9 +16,9 @@ const props = defineProps({
 const componentMap = {
   title: 'h3',
   text: 'p',
-  input: 'input',
+  input: LcInput,
   textarea: 'textarea',
-  button: 'button',
+  button: LcButton,
   card: 'div',
   row: 'div',
   col: 'div',
