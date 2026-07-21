@@ -115,9 +115,20 @@ export default defineEventHandler(async (event) => {
       }
     }
   }
-  const match = fullReply.match(/---PROMPT_START---\n?([\s\S]*?)\n?---PROMPT_END---/)
-    const extracted = fixJSON(match ? match[1].trim() : fullReply)
-    event.node.res.write(`data: ${JSON.stringify({ type: 'done', extracted })}\n\n`)
+  let extracted = fullReply
+  // 策略1：优先找 ---PROMPT_START--- / ---PROMPT_END--- 标记
+  let match = fullReply.match(/---PROMPT_START---\n?([\s\S]*?)\n?---PROMPT_END---/)
+  // 策略2：不区分大小写
+  if (!match) match = fullReply.match(/---prompt_start---\n?([\s\S]*?)\n?---prompt_end---/i)
+  // 策略3：没有标记时，取最后一个分隔线之后的内容
+  if (!match) {
+    const parts = fullReply.split(/---+\s*PROMPT/i)
+    if (parts.length > 1) {
+      extracted = parts[parts.length - 1].replace(/---+\s*END---*/i, '').trim()
+    }
+  }
+  extracted = fixJSON(match ? match[1].trim() : extracted)
+  event.node.res.write(`data: ${JSON.stringify({ type: 'done', extracted })}\n\n`)
     event.node.res.end()
 })
 
