@@ -1,13 +1,14 @@
 
+
 import { getStorageData } from '@/composables/useStorage'
 
 const history = getStorageData('chat-history', [])
 
 export function useHistory() {
-  function addHistory(userMsg, assistantMsg) {
+  function addHistory(userMsg, assistantMsg, msgCategory) {
     history.value.push(
-      { role: 'user', content: userMsg },
-      { role: 'assistant', content: assistantMsg },
+      { role: 'user', content: userMsg, category: msgCategory },
+      { role: 'assistant', content: assistantMsg, category: msgCategory },
     )
   }
 

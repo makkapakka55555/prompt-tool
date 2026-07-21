@@ -1,11 +1,12 @@
 <template>
   <div class="app-layout">
     <!-- 左侧边栏 -->
+    <ErrorBoundary>
     <aside class="sidebar">
       <div class="sidebar-brand">🤖 Prompt Tool</div>
 
       <nav class="sidebar-nav">
-        <NuxtLink to="/" class="sidebar-nav-link" :class="{ 'sidebar-nav-link--active': $route.path === '/' }">
+        <NuxtLink to="/" class="sidebar-nav-link" :class="{ 'sidebar-nav-link--active': $route.path === '/' }" @click="triggerReset">
           💬 生成
         </NuxtLink>
         <NuxtLink to="/library" class="sidebar-nav-link" :class="{ 'sidebar-nav-link--active': $route.path === '/library' }">
@@ -17,6 +18,7 @@
           <div class="sidebar-item" :class="{ 'sidebar-item--active': $route.query.category === 'code' }" @click="router.push('/library?category=code')">💻 代码</div>
           <div class="sidebar-item" :class="{ 'sidebar-item--active': $route.query.category === 'art' }" @click="router.push('/library?category=art')">🎨 绘画</div>
           <div class="sidebar-item" :class="{ 'sidebar-item--active': $route.query.category === 'general' }" @click="router.push('/library?category=general')">📋 通用</div>
+          <div class="sidebar-item" :class="{ 'sidebar-item--active': $route.query.category === 'page' }" @click="router.push('/library?category=page')">🌐 页面</div>
       </div>
       </nav>
       
@@ -47,11 +49,14 @@
         </div>
       </div>
     </aside>
+    </ErrorBoundary>
 
     <!-- 右侧主内容 -->
+    <ErrorBoundary>
     <main class="main-content">
       <NuxtPage />
     </main>
+    </ErrorBoundary>
 
     <Toaster position="bottom-right" richColors closeButton :duration="3000" />
   </div>
@@ -64,7 +69,7 @@ import { useHistory } from '@/composables/useHistory'
 import { useRestoreData } from '@/composables/useRestoreData'
 
 const { history } = useHistory()
-const { setRestoreData } = useRestoreData()
+const { setRestoreData, triggerReset } = useRestoreData()
 const darkMode = ref(false)
 
 onMounted(() => {
@@ -117,7 +122,7 @@ function restoreMessage(msg) {
     userContent = prev?.content || ''
   }
 
-  setRestoreData({ user: userContent, assistant: assistantContent })
+  setRestoreData({ user: userContent, assistant: assistantContent, category: msg.category })
   router.push('/')
 }
 </script>

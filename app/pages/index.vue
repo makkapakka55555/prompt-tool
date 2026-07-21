@@ -72,6 +72,11 @@
         <AppButton @click="copyToClipboard">📋 复制</AppButton>
         <AppButton variant="primary" @click="savePrompt">💾 保存</AppButton>
       </div>
+      <div v-if="category === 'page' && pageTree" class="page-preview">
+        <span>全屏预览</span>
+        <div class="page-preview-btn" @click = "fullScreenPreview = true">⛶ 全屏</div>
+        <DynamicRenderer :node="pageTree" />
+      </div>
       <details open class="raw-reply">
         <summary>查看完整回复</summary>
         <pre>{{ result }}</pre>
@@ -81,6 +86,17 @@
         <AppButton @click="fileInput.click()">📥 导入词库</AppButton>
         <input ref="fileInput" type="file" accept=".json" hidden @change="importLibrary" />
       </div>
+      <Teleport to="body">
+        <div v-if="fullScreenPreview" class="fullscreen-overlay" @click.self="fullScreenPreview = false">
+          <div class="fullscreen-header">
+            <span>页面预览</span>
+            <button class="page-preview-btn" @click="fullScreenPreview = false">✕ 退出</button>
+          </div>
+          <div class="fullscreen-body">
+            <DynamicRenderer :node="pageTree" />
+          </div>
+        </div>
+      </Teleport>
     </AppCard>
 
     <!-- 错误提示 -->
@@ -103,6 +119,7 @@ const categories = [
   { key: 'code', label: '代码', icon: '💻' },
   { key: 'art', label: '绘画', icon: '🎨' },
   { key: 'general', label: '通用', icon: '📋' },
+  { key: 'page', label: '页面', icon: '🌐' },
 ]
 
 const fileInput = ref(null)
@@ -119,16 +136,46 @@ const editPrompt = ref('')
 const editSource = ref('')
 const prompts = getStorageData('prompt-library', [])
 const { history, addHistory } = useHistory()
-const { pendingRestore, consumeRestoreData } = useRestoreData()
+const { pendingRestore, consumeRestoreData, resetCounter } = useRestoreData()
 const detailItem = ref(null)
+const pageTree = ref(null)
+const fullScreenPreview = ref(false)
 
-// 从侧边栏历史记录恢复（实时响应，不用等 onMounted）
+// 刷新后尝试恢复页面预览（v-if 会自动控制显示隐藏）
+const lastPageData = localStorage.getItem('last-page-data')
+if (lastPageData) {
+  try { pageTree.value = JSON.parse(lastPageData) } catch {}
+}
+
+watch(category, (val) => {
+  if (val !== 'page') {
+    pageTree.value = null
+    localStorage.removeItem('last-page-data')
+  }
+})
+
+watch(resetCounter, () => {
+  message.value = ''
+  result.value = ''
+  editPrompt.value = ''
+  error.value = ''
+  pageTree.value = null
+})
+
 watch(pendingRestore, (data) => {
   if (!data) return
   message.value = data.user
   result.value = data.assistant
   editPrompt.value = data.assistant
   editSource.value = 'ai'
+  if (data.category) category.value = data.category
+  try {
+    const parsed = JSON.parse(data.assistant)
+    pageTree.value = parsed.type && parsed.children ? parsed : null
+    if (pageTree.value) localStorage.setItem('last-page-data', data.assistant)
+  } catch {
+    pageTree.value = null
+  }
   consumeRestoreData()
 }, { immediate: true })
 
@@ -161,6 +208,8 @@ async function send() {
   abortController.value = new AbortController()
   error.value = ''
   result.value = ''
+  pageTree.value = null
+  const currentCategory = category.value
 
   try {
     const response = await fetch('/api/chat', {
@@ -199,7 +248,14 @@ async function send() {
             result.value += json.content
           } else if (json.type === 'done') {
             editPrompt.value = json.extracted
-            addHistory(message.value, result.value)
+            addHistory(message.value, currentCategory === 'page' ? json.extracted : result.value, currentCategory)
+            if (currentCategory === 'page') {
+              try {
+                pageTree.value = JSON.parse(json.extracted)
+                localStorage.setItem('last-page-data', json.extracted)
+              }
+              catch { error.value = 'AI 输出格式不对，请重试' }
+            }
           } else if (json.type === 'error') {
             error.value = json.message
           }
@@ -366,6 +422,14 @@ function importLibrary(e) {
   flex-wrap: wrap;
 }
 
+.page-preview {
+  margin-top: var(--space-lg);
+  padding: var(--space-lg);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
 /* 词库详情 */
 .detail-card {
   margin-bottom: var(--space-lg);
@@ -427,4 +491,52 @@ function importLibrary(e) {
   color: var(--color-error);
   font-size: var(--font-size-base);
 }
+.page-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-sm);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+  }
+
+  .page-preview-btn {
+    padding: 4px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-white);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  .page-preview-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .fullscreen-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: var(--color-bg-white);
+    padding: 20px 40px;
+    overflow-y: auto;
+  }
+
+  .fullscreen-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 16px;
+  }
+
+  .fullscreen-body {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
 </style>

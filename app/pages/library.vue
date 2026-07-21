@@ -43,7 +43,7 @@ const editingItem = ref(null)
 
 const route = useRoute()
 const categoryFilter = computed(() => route.query.category || '')
-const categoryLabels = { copywriting: '文案', code: '代码', art: '绘画', general: '通用' }
+const categoryLabels = { copywriting: '文案', code: '代码', art: '绘画', general: '通用',page:'页面' }
 const filteredPrompts = computed(() => {
   if (!categoryFilter.value) return prompts.value
   return prompts.value.filter(item => item.category === categoryFilter.value)
