@@ -77,10 +77,6 @@
         <div class="page-preview-btn" @click = "fullScreenPreview = true">⛶ 全屏</div>
         <DynamicRenderer :node="pageTree" />
       </div>
-      <details open class="raw-reply">
-        <summary>查看完整回复</summary>
-        <pre>{{ result }}</pre>
-      </details>
       <div class="io-actions">
         <AppButton @click="exportLibrary">📤 导出词库</AppButton>
         <AppButton @click="fileInput.click()">📥 导入词库</AppButton>
@@ -246,6 +242,7 @@ async function send() {
           const json = JSON.parse(payload)
           if (json.type === 'token') {
             result.value += json.content
+            editPrompt.value += json.content
           } else if (json.type === 'done') {
             editPrompt.value = json.extracted
             addHistory(message.value, currentCategory === 'page' ? json.extracted : result.value, currentCategory)
@@ -401,18 +398,6 @@ function importLibrary(e) {
   display: flex;
   gap: var(--space-sm);
   flex-wrap: wrap;
-}
-
-.raw-reply {
-  margin-top: var(--space-lg);
-  color: var(--color-text-tertiary);
-  font-size: var(--font-size-sm);
-}
-
-.raw-reply pre {
-  white-space: pre-wrap;
-  font-size: var(--font-size-sm);
-  margin-top: var(--space-sm);
 }
 
 .io-actions {

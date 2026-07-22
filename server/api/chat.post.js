@@ -19,11 +19,11 @@ export default defineEventHandler(async (event) => {
 
   // 根据分类选择元提示词
   const categoryPrompts = {
-    copywriting: '你是一个文案提示词专家。先分析用户需求，给出你的建议。然后按以下要素生成提示词：平台定位、目标人群、语气风格、核心卖点、行动号召。最后用 ---PROMPT_START--- 和 ---PROMPT_END--- 包裹生成的提示词。注意：只有被包裹的部分才是最终的提示词，前面的分析不要放在包裹内。',
-    code: '你是一个代码提示词专家。先分析用户需求，给出你的建议。然后按以下要素生成提示词：技术栈、功能描述、输入输出格式、边界条件、测试用例。最后用 ---PROMPT_START--- 和 ---PROMPT_END--- 包裹生成的提示词。注意：只有被包裹的部分才是最终的提示词，前面的分析不要放在包裹内。',
-    art: '你是一个绘画提示词专家。先分析用户需求，给出你的建议。然后按以下要素生成提示词：主体描述、环境背景、画风流派、色彩光线、构图角度、参数。最后用 ---PROMPT_START--- 和 ---PROMPT_END--- 包裹生成的提示词。注意：只有被包裹的部分才是最终的提示词。前面的分析不要放在包裹内。',
-    general: systemPrompt || '你是一个提示词专家，根据用户需求生成结构化的提示词。先分析用户需求，给出建议，然后用 ---PROMPT_START--- 和 ---PROMPT_END--- 包裹生成的提示词。',
-    page: '你是一个页面生成专家。根据用户需求生成组件树。只输出 JSON，不要输出其他任何文字。不要用代码块，不要包裹，直接输出 JSON 对象。可用组件：title(标题，text 属性)、text(文字，text 属性)、input(输入框，placeholder 属性)、textarea(多行输入，placeholder 属性)、button(按钮，text 属性)、card(卡片容器)、row(水平容器)、col(垂直容器)。children 是子组件数组。示例：{"type":"card","props":{},"children":[{"type":"title","props":{"text":"标题"}},{"type":"input","props":{"placeholder":"占位"}},{"type":"button","props":{"text":"按钮"}}]}'
+    copywriting: '你是一个文案提示词专家。根据用户需求直接输出优化后的提示词，不要分析，不要多余内容。按以下要素生成：平台定位、目标人群、语气风格、核心卖点、行动号召。',
+    code: '你是一个代码提示词专家。根据用户需求直接输出优化后的提示词，不要分析，不要多余内容。按以下要素生成：技术栈、功能描述、输入输出格式、边界条件、测试用例。',
+    art: '你是一个绘画提示词专家。根据用户需求直接输出优化后的提示词，不要分析，不要多余内容。按以下要素生成：主体描述、环境背景、画风流派、色彩光线、构图角度、参数。',
+    general: systemPrompt || '你是一个提示词专家，根据用户需求直接输出优化后的提示词，不要分析，不要多余内容。',
+    page: '你是一个页面生成专家。根据用户需求生成组件树。只输出 JSON，不要输出其他任何文字。不要用代码块，不要包裹，直接输出 JSON 对象。可用组件：title(标题，text 属性)、text(文字，text 属性)、input(输入框，placeholder 属性，label 属性)、textarea(多行输入，placeholder 属性)、button(按钮，text 属性)、image(图片，src 属性)、select(下拉框，label 属性，options 数组)、link(链接，text 属性，href 属性)、checkbox(复选框，label 属性，checked 布尔值)、card(卡片容器)、row(水平容器)、col(垂直容器)。children 是子组件数组。示例：{"type":"card","props":{},"children":[{"type":"title","props":{"text":"标题"}},{"type":"input","props":{"placeholder":"占位"}},{"type":"button","props":{"text":"按钮"}}]}'
   }
 
   const finalPrompt = categoryPrompts[category] || categoryPrompts.general
@@ -115,20 +115,7 @@ export default defineEventHandler(async (event) => {
       }
     }
   }
-  let extracted = fullReply
-  // 策略1：优先找 ---PROMPT_START--- / ---PROMPT_END--- 标记
-  let match = fullReply.match(/---PROMPT_START---\n?([\s\S]*?)\n?---PROMPT_END---/)
-  // 策略2：不区分大小写
-  if (!match) match = fullReply.match(/---prompt_start---\n?([\s\S]*?)\n?---prompt_end---/i)
-  // 策略3：没有标记时，取最后一个分隔线之后的内容
-  if (!match) {
-    const parts = fullReply.split(/---+\s*PROMPT/i)
-    if (parts.length > 1) {
-      extracted = parts[parts.length - 1].replace(/---+\s*END---*/i, '').trim()
-    }
-  }
-  extracted = fixJSON(match ? match[1].trim() : extracted)
-  event.node.res.write(`data: ${JSON.stringify({ type: 'done', extracted })}\n\n`)
-    event.node.res.end()
+  event.node.res.write(`data: ${JSON.stringify({ type: 'done', extracted: fullReply })}\n\n`)
+  event.node.res.end()
 })
 
