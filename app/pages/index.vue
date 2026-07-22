@@ -6,6 +6,7 @@
         :key="cat.key"
         class="category-btn"
         :class="{ 'category-btn--active': category === cat.key }"
+        :disabled="viewOnly"
         @click="category = cat.key"
       >
         {{ cat.icon }} {{ cat.label }}
@@ -42,8 +43,8 @@
       </details>
 
       <div class="input-actions">
-        <AppButton variant="primary" :loading="loading" @click="send">
-          {{ loading ? 'AI 思考中...' : '🚀 生成' }}
+        <AppButton variant="primary" :loading="loading" :disabled="viewOnly" @click="send">
+          {{ viewOnly ? '📋 查看模式' : loading ? 'AI 思考中...' : '🚀 生成' }}
         </AppButton>
         <AppButton v-if="loading" variant="danger" @click="cancelSend">✋ 取消</AppButton>
       </div>
@@ -70,7 +71,15 @@
       <AppTextarea v-model="editPrompt" :rows="8" />
       <div class="result-actions">
         <AppButton @click="copyToClipboard">📋 复制</AppButton>
+        <AppButton variant="primary" @click="testPrompt" :loading="testing">▶ 测试</AppButton>
         <AppButton variant="primary" @click="savePrompt">💾 保存</AppButton>
+      </div>
+      <div v-if="testResult" class="test-result">
+        <div class="test-result-header">
+          <span>🤖 AI 测试结果</span>
+          <button class="test-close-btn" @click="testResult = ''">✕</button>
+        </div>
+        <pre class="test-result-content">{{ testResult }}</pre>
       </div>
       <div v-if="category === 'page' && pageTree" class="page-preview">
         <span>全屏预览</span>
@@ -136,6 +145,9 @@ const { pendingRestore, consumeRestoreData, resetCounter } = useRestoreData()
 const detailItem = ref(null)
 const pageTree = ref(null)
 const fullScreenPreview = ref(false)
+const testing = ref(false)
+const testResult = ref('')
+const viewOnly = ref(false)
 
 // 刷新后尝试恢复页面预览（v-if 会自动控制显示隐藏）
 const lastPageData = localStorage.getItem('last-page-data')
@@ -156,6 +168,7 @@ watch(resetCounter, () => {
   editPrompt.value = ''
   error.value = ''
   pageTree.value = null
+  viewOnly.value = false
 })
 
 watch(pendingRestore, (data) => {
@@ -165,6 +178,7 @@ watch(pendingRestore, (data) => {
   editPrompt.value = data.assistant
   editSource.value = 'ai'
   if (data.category) category.value = data.category
+  viewOnly.value = true
   try {
     const parsed = JSON.parse(data.assistant)
     pageTree.value = parsed.type && parsed.children ? parsed : null
@@ -200,10 +214,12 @@ function fillFromDetail() {
 async function send() {
   if (!message.value.trim()) return
 
+  viewOnly.value = false
   loading.value = true
   abortController.value = new AbortController()
   error.value = ''
   result.value = ''
+  editPrompt.value = ''
   pageTree.value = null
   const currentCategory = category.value
 
@@ -264,6 +280,23 @@ async function send() {
     error.value = err?.message || '请求失败'
   } finally {
     loading.value = false
+  }
+}
+
+async function testPrompt() {
+  if (!editPrompt.value.trim()) return
+  testing.value = true
+  testResult.value = ''
+  try {
+    const data = await $fetch('/api/test-prompt', {
+      method: 'POST',
+      body: { prompt: editPrompt.value }
+    })
+    testResult.value = data.reply
+  } catch (err) {
+    testResult.value = '测试失败：' + (err?.message || '请求错误')
+  } finally {
+    testing.value = false
   }
 }
 
@@ -371,6 +404,10 @@ function importLibrary(e) {
   color: var(--color-text-inverse);
   border-color: var(--color-primary);
 }
+.category-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* 卡片 */
 .section-card {
@@ -413,6 +450,41 @@ function importLibrary(e) {
   background: var(--color-bg);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
+}
+
+.test-result {
+  margin-top: var(--space-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.test-result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--color-bg);
+  font-size: 13px;
+  border-bottom: 1px solid var(--color-border);
+}
+.test-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  font-size: 16px;
+}
+.test-close-btn:hover {
+  color: var(--color-text);
+}
+.test-result-content {
+  margin: 0;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 /* 词库详情 */
