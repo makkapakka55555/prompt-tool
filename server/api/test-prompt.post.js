@@ -14,14 +14,22 @@ export default defineEventHandler(async (event) => {
       'Authorization': `Bearer ${config.deepseekApiKey}`
     },
     body: JSON.stringify({
-      model: 'deepseek-v4-flash',
-      messages: [{ role: 'user', content: prompt }],
+      model: 'deepseek-chat',
+      messages: [
+        { role: 'system', content: '你是AI助手，根据用户的输入给出回复。' },
+        { role: 'user', content: prompt }
+      ],
       temperature: 0.5,
       max_tokens: 1024
     })
   })
 
+  if (!response.ok) {
+    const err = await response.text()
+    return { reply: 'API 请求失败: ' + err }
+  }
+
   const data = await response.json()
-  const reply = data.choices?.[0]?.message?.content || '没有收到回复'
+  const reply = data.choices?.[0]?.message?.content || 'AI 没有返回内容'
   return { reply }
 })

@@ -156,6 +156,7 @@ if (lastPageData) {
 }
 
 watch(category, (val) => {
+  testResult.value = ''
   if (val !== 'page') {
     pageTree.value = null
     localStorage.removeItem('last-page-data')
@@ -169,10 +170,12 @@ watch(resetCounter, () => {
   error.value = ''
   pageTree.value = null
   viewOnly.value = false
+  testResult.value = ''
 })
 
 watch(pendingRestore, (data) => {
   if (!data) return
+  testResult.value = ''
   message.value = data.user
   result.value = data.assistant
   editPrompt.value = data.assistant
@@ -220,6 +223,7 @@ async function send() {
   error.value = ''
   result.value = ''
   editPrompt.value = ''
+  testResult.value = ''
   pageTree.value = null
   const currentCategory = category.value
 

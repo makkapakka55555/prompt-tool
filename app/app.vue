@@ -25,21 +25,23 @@
 
       <!-- 历史记录 -->
       <div class="sidebar-section">
-        <div class="sidebar-section-title">💬 历史记录</div>
-        <div v-if="history.length === 0" class="sidebar-empty">暂无记录</div>
-        <div
-          v-for="(msg, i) in displayHistory"
-          :key="i"
-          class="sidebar-item"
-          @click="restoreMessage(msg)"
-        >
-          <span class="sidebar-item-label">{{ msg.role === 'user' ? '你' : 'AI' }}</span>
-          <span class="sidebar-item-text">{{ msg.content.slice(0, 20) }}{{ msg.content.length > 20 ? '...' : '' }}</span>
-          <span v-if="msg.role === 'user'" class="sidebar-item-del" @click.stop="deleteHistoryItem(msg)">×</span>
+        <div class="sidebar-section-title sidebar-section-click" @click="historyOpen = !historyOpen">
+          <span>💬 历史记录 ({{ history.length }})</span>
+          <span class="sidebar-arrow">{{ historyOpen ? '▼' : '▶' }}</span>
         </div>
-        <button class="sidebar-more-btn" @click="showAllHistory = !showAllHistory" v-if="history.length>10">
-          {{ showAllHistory ? '收起' : '显示所有' }}
-        </button>
+        <template v-if="historyOpen">
+          <div v-if="history.length === 0" class="sidebar-empty">暂无记录</div>
+          <div
+            v-for="(msg, i) in displayHistory"
+            :key="i"
+            class="sidebar-item"
+            @click="restoreMessage(msg)"
+          >
+            <span class="sidebar-item-label">{{ msg.role === 'user' ? '你' : 'AI' }}</span>
+            <span class="sidebar-item-text">{{ msg.content.slice(0, 20) }}{{ msg.content.length > 20 ? '...' : '' }}</span>
+            <span v-if="msg.role === 'user'" class="sidebar-item-del" @click.stop="deleteHistoryItem(msg)">×</span>
+          </div>
+        </template>
       </div>
       <!-- 暗黑模式切换 -->
       <div class="sidebar-section sidebar-bottom">
@@ -71,6 +73,7 @@ import { useRestoreData } from '@/composables/useRestoreData'
 const { history } = useHistory()
 const { setRestoreData, triggerReset } = useRestoreData()
 const darkMode = ref(false)
+const historyOpen = ref(false)
 
 onMounted(() => {
   const saved = localStorage.getItem('dark-mode')
@@ -87,15 +90,7 @@ function toggleDark() {
 }
 
 const router = useRouter()
-//历史记录
-const showAllHistory = ref(false)
-const displayHistory = computed(()=>{
-  if(showAllHistory.value){
-    return history.value
-  }else{
-    return history.value.slice(-10)
-  }
-})
+const displayHistory = computed(() => history.value.slice(-20))
 
 function deleteHistoryItem(msg) {
   const idx = history.value.indexOf(msg)
@@ -202,6 +197,21 @@ body {
   font-size: var(--font-size-sm);
   color: var(--color-text-tertiary);
   padding: var(--space-sm) 0;
+}
+
+.sidebar-section-click {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+.sidebar-section-click:hover {
+  color: var(--color-primary);
+}
+.sidebar-arrow {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
 }
 
 .sidebar-item {
